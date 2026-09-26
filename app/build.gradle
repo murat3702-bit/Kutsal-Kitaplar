@@ -28,4 +28,14 @@ android {
 
 dependencies {
     implementation 'androidx.appcompat:appcompat:1.7.0'
+
+    modules {
+        module("org.jetbrains.kotlin:kotlin-stdlib-jdk7") {
+            replacedBy("org.jetbrains.kotlin:kotlin-stdlib", "stdlib jdk7 is part of stdlib now")
+        }
+        module("org.jetbrains.kotlin:kotlin-stdlib-jdk8") {
+            replacedBy("org.jetbrains.kotlin:kotlin-stdlib", "stdlib jdk8 is part of stdlib now")
+        }
+    }
 }
+
