@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
 <title>Dört Kitap</title>
-<link rel="stylesheet" href="css/style.css" />
+<link rel="stylesheet" href="style.css" />
 <script>
   // Yükleme sırasında bir hata olursa boş ekran yerine hatayı ekranda göster.
   window.dkFail = function (msg) {
@@ -35,6 +35,6 @@
     if (!window[k]) window.dkFail("Veri okunamadı: " + k);
   });
 </script>
-<script src="js/app.js" onerror="dkFail('Yüklenemedi: js/app.js')"></script>
+<script src="app.js" onerror="dkFail('Yüklenemedi: app.js')"></script>
 </body>
 </html>
