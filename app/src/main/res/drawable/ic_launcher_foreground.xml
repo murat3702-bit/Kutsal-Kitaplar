@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- left page: top (green) -->
+    <path
+        android:pathData="M54,42 C46,34 30,32 21,35 L21,55.5 L54,58 Z"
+        android:fillColor="#8FC93D" />
+    <!-- left page: bottom (blue) -->
+    <path
+        android:pathData="M21,55.5 L54,58 L54,81 C46,73 30,71 21,74 Z"
+        android:fillColor="#5EB6CC" />
+    <!-- right page: top (yellow) -->
+    <path
+        android:pathData="M54,42 C62,34 78,32 87,35 L87,55.5 L54,58 Z"
+        android:fillColor="#FBBE2E" />
+    <!-- right page: bottom (white) -->
+    <path
+        android:pathData="M87,55.5 L54,58 L54,81 C62,73 78,71 87,74 Z"
+        android:fillColor="#FAFAF8" />
+
+    <!-- page outlines -->
+    <path
+        android:pathData="M54,42 C46,34 30,32 21,35 L21,74 C30,71 46,73 54,81 C62,73 78,71 87,74 L87,35 C78,32 62,34 54,42 Z"
+        android:fillColor="#00000000"
+        android:strokeColor="#3A3A38"
+        android:strokeWidth="1.1"
+        android:strokeLineJoin="round"
+        android:strokeLineCap="round" />
+
+    <!-- ribbon bookmark -->
+    <path
+        android:pathData="M51.3,26 L56.7,26 L56.7,85 L54,80.5 L51.3,85 Z"
+        android:fillColor="#E31E1E" />
+</vector>
