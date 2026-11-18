@@ -23,6 +23,13 @@ jobs:
 
     - name: Setup Gradle
       uses: gradle/actions/setup-gradle@v4
+    - name: Akıllı VersionCode Artır
+      run: |
+        FILE=$([ -f app/build.gradle.kts ] && echo "app/build.gradle.kts" || echo "app/build.gradle")
+        CURRENT=$(grep -oE 'versionCode[ =]+[0-9]+' "$FILE" | grep -oE '[0-9]+' | head -n 1)
+        NEW_CODE=$((CURRENT + ${{ github.run_number }}))
+        sed -i -E "s/(versionCode[ =]+)[0-9]+/\1$NEW_CODE/" "$FILE"
+        echo "Yeni versionCode: $NEW_CODE"
 
     - name: Build Release APK
       run: gradle assembleRelease --no-daemon
