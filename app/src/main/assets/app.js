@@ -600,6 +600,25 @@
     if (document.body) document.body.scrollTop = 0;
   }
 
+
+  // Önceki/Sonraki ile bölüm değiştirirken Android WebView eski sayfanın çizimini (hayalet metin) ekranda
+  // bırakıp alttaki butonları gizleyebiliyordu. Çözüm: önce içeriği boşalt + en üste çık, bir kare bekle,
+  // sonra yeni bölümü çiz ve çizim sonrası ekranı bir kez yeniden boyamaya zorla.
+  function navTo(hash) {
+    try { closeVerseSheet(true); } catch (e) {}
+    root.innerHTML = "";
+    resetScroll();
+    void document.body.offsetHeight;
+    requestAnimationFrame(function () { go(hash); });
+  }
+  function forceRepaint() {
+    var b = document.body;
+    b.style.display = "none";
+    void b.offsetHeight;
+    b.style.display = "";
+    resetScroll();
+  }
+
   function dispatch(parts) {
     if (parts.length === 0) return renderHome();
     if (parts[0] === "list") return renderList(parts[1]);
@@ -628,9 +647,11 @@
     if (!hasTarget) {
       requestAnimationFrame(function () {
         resetScroll();
-        requestAnimationFrame(resetScroll);
+        requestAnimationFrame(function () {
+          if (parts[0] === "read") forceRepaint(); else resetScroll();
+        });
       });
-      setTimeout(resetScroll, 80);
+      setTimeout(function () { if (parts[0] === "read") forceRepaint(); else resetScroll(); }, 120);
     }
   }
   window.addEventListener("hashchange", route);
@@ -963,7 +984,7 @@
     if (adj.prev) {
       var pBtn = el("button", "nav-btn prev");
       pBtn.innerHTML = ICON.chevLeft + "<span>Önceki</span>";
-      pBtn.addEventListener("click", function () { go(adj.prev.url); });
+      pBtn.addEventListener("click", function () { navTo(adj.prev.url); });
       nav.appendChild(pBtn);
     } else {
       nav.appendChild(el("div", "nav-slot prev"));
@@ -971,7 +992,7 @@
     if (adj.next) {
       var nBtn = el("button", "nav-btn next");
       nBtn.innerHTML = "<span>Sonraki</span>" + ICON.chevRight;
-      nBtn.addEventListener("click", function () { go(adj.next.url); });
+      nBtn.addEventListener("click", function () { navTo(adj.next.url); });
       nav.appendChild(nBtn);
     } else {
       nav.appendChild(el("div", "nav-slot next"));
@@ -1163,7 +1184,7 @@
 
   // ---------- Sürüm / Yedekleme / Hakkında ----------
   // Her değişiklikte hem bu değer hem app/build.gradle (versionName) +1 güncellenir.
-  var APP_VERSION = "2.22";
+  var APP_VERSION = "2.23";
   var BACKUP_FOLDER_LABEL = "Backups / 4 Kitap";
   var BACKUP_KEYS = [LS_FAV, LS_HIST, LS_BOOKMARK, LS_NOTES, LS_SEARCH_BOOK, LS_TEXT_CATS, LS_THEME, LS_OVERRIDES, LS_DIM];
   var overlayNode = null; // açık popup / alt sayfa
