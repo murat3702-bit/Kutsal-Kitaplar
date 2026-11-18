@@ -15,6 +15,7 @@ import android.os.Environment;
 import android.provider.Settings;
 import android.os.Bundle;
 import android.view.KeyEvent;
+import android.view.View;
 import android.webkit.JavascriptInterface;
 import android.webkit.ValueCallback;
 import android.webkit.WebSettings;
@@ -297,6 +298,8 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
 
         webView = new WebView(this);
+        // Sayfa sonunda Android 12+ esneme efekti içeriği sıkıştırıp bozuk gösterebiliyor; kapatıldı.
+        webView.setOverScrollMode(View.OVER_SCROLL_NEVER);
         setContentView(webView);
 
         WebSettings settings = webView.getSettings();
