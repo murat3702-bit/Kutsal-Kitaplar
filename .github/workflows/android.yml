@@ -28,18 +28,19 @@ jobs:
     - name: Setup Gradle
       uses: gradle/actions/setup-gradle@v4
 
-    - name: Kalıcı VersionName Artır (1.99 -> 2.00)
+    - name: Kalıcı VersionName ve APP_VERSION Artır (1.99 -> 2.00)
       id: version
       if: github.event_name != 'pull_request'
       run: |
-        FILE=$([ -f app/build.gradle.kts ] && echo "app/build.gradle.kts" || echo "app/build.gradle")
+        FILE="app/build.gradle"
+        JS_FILE="app/src/main/assets/app.js"
         
-        # Mevcut versionName değerini okur
+        # 1. Mevcut versionName değerini okur
         CURRENT_NAME=$(grep -oE 'versionName[ =]+"[^"]+"' "$FILE" | sed -E 's/.*"([^"]+)".*/\1/' | head -n 1)
         MAJOR=$(echo "$CURRENT_NAME" | cut -d'.' -f1)
         MINOR=$(echo "$CURRENT_NAME" | cut -d'.' -f2)
         
-        # Alt sürümü +1 artırır ve 99'u geçerse ana sürümü yükseltir (1.99 -> 2.00)
+        # 2. Alt sürümü +1 artırır ve 99'u geçerse ana sürümü yükseltir (1.99 -> 2.00)
         MINOR=$((10#$MINOR + 1))
         if [ "$MINOR" -gt 99 ]; then
           MAJOR=$((MAJOR + 1))
@@ -47,15 +48,18 @@ jobs:
         fi
         
         NEW_NAME=$(printf "%d.%02d" "$MAJOR" "$MINOR")
-        sed -i -E "s/(versionName[ =]+\")[^\"]+\"/\1$NEW_NAME\"/" "$FILE"
         
-        echo "Yeni Versiyon -> versionName: $NEW_NAME"
+        # 3. Hem app/build.gradle hem de app.js içindeki sürümü günceller
+        sed -i -E "s/(versionName[ =]+\")[^\"]+\"/\1$NEW_NAME\"/" "$FILE"
+        sed -i -E "s/(var APP_VERSION = \")[^\"]+\"/\1$NEW_NAME\"/" "$JS_FILE"
+        
+        echo "Yeni Versiyon -> build.gradle ve app.js: $NEW_NAME"
         echo "new_name=$NEW_NAME" >> $GITHUB_OUTPUT
 
-        # Yeni versiyonu depoya kalıcı olarak kaydeder
+        # 4. İki dosyayı da depoya kalıcı olarak kaydeder
         git config --local user.email "action@github.com"
         git config --local user.name "GitHub Action"
-        git add "$FILE"
+        git add "$FILE" "$JS_FILE"
         git commit -m "Versiyon artırıldı: $NEW_NAME [skip ci]"
         git push
 
