@@ -1184,7 +1184,7 @@
 
   // ---------- Sürüm / Yedekleme / Hakkında ----------
   // Her değişiklikte hem bu değer hem app/build.gradle (versionName) +1 güncellenir.
-  var APP_VERSION = "2.25";
+  var APP_VERSION = "2.28";
   var BACKUP_FOLDER_LABEL = "Backups / 4 Kitap";
   var BACKUP_KEYS = [LS_FAV, LS_HIST, LS_BOOKMARK, LS_NOTES, LS_SEARCH_BOOK, LS_TEXT_CATS, LS_THEME, LS_OVERRIDES, LS_DIM];
   var overlayNode = null; // açık popup / alt sayfa
