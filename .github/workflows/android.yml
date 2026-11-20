@@ -73,12 +73,12 @@ jobs:
           --ks-key-alias "${{ secrets.ALIAS }}" \
           --ks-pass "pass:${{ secrets.KEY_STORE_PASSWORD }}" \
           --key-pass "pass:${{ secrets.KEY_PASSWORD }}" \
-          --out app-release-signed.apk \
+          --out app-v${{ steps.version.outputs.new_name }}-release-signed.apk \
           app-release-aligned.apk
 
-    - name: Upload Signed APK
-      uses: actions/upload-artifact@v4
+    - name: Release Signed APK
+      uses: softprops/action-gh-release@v2
       with:
-        name: app-v${{ steps.version.outputs.new_name }}-release-signed
-        path: app-release-signed.apk
-        retention-days: 3
+        tag_name: v${{ steps.version.outputs.new_name }}
+        name: Release v${{ steps.version.outputs.new_name }}
+        files: app-v${{ steps.version.outputs.new_name }}-release-signed.apk
