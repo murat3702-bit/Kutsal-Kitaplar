@@ -81,3 +81,4 @@ jobs:
       with:
         name: app-v${{ steps.version.outputs.new_name }}-release-signed
         path: app-release-signed.apk
+        retention-days: 3
