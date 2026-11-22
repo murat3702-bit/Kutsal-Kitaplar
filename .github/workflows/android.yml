@@ -8,6 +8,7 @@ on:
 
 permissions:
   contents: write
+  actions: write
 
 jobs:
   build-and-clean:
@@ -94,13 +95,20 @@ jobs:
         name: Release v${{ steps.version.outputs.new_name }}
         files: app-v${{ steps.version.outputs.new_name }}-release-signed.apk
 
-    - name: 24 Saatten Eski Sürümleri ve Tag'leri Temizle
+    - name: 24 Saatten Eski Sürümleri, Tag'leri ve Önbellekleri Temizle
       if: always()
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
         CUTOFF=$(date -u -d '1 day ago' +%Y-%m-%dT%H:%M:%SZ)
         echo "Kesim tarihi (UTC): $CUTOFF"
+
+        gh cache list --repo "${{ github.repository }}" --limit 100 --json id --jq '.[].id' | while read -r CACHE_ID; do
+          if [ -n "$CACHE_ID" ]; then
+            echo "Önbellek siliniyor: $CACHE_ID"
+            gh cache delete "$CACHE_ID" --repo "${{ github.repository }}"
+          fi
+        done
 
         gh release list --repo "${{ github.repository }}" --limit 100 --json tagName,createdAt \
           --jq ".[] | select(.createdAt < \"$CUTOFF\") | .tagName" | while read -r TAG; do
