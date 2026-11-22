@@ -1,6 +1,8 @@
 name: Android CI
 
 on:
+  push:
+    branches: [ "main", "master" ]
   workflow_dispatch:
   schedule:
     # Her gün gece 03:00'te (UTC) 24 saati geçmiş sürümleri kontrol edip siler
