@@ -108,6 +108,9 @@
 }
 
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+/* Uzun basmayla metin seçimi kapalı (yalnızca yazı girilen alanlar hariç) */
+html, body, body * { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+input, textarea { -webkit-user-select: text; user-select: text; }
 svg { width: 20px; height: 20px; display: inline-block; vertical-align: middle; flex-shrink: 0; }
 html, body { margin: 0; }
 html { font-size: 16px; min-height: 100%; overflow-x: hidden; overflow-anchor: none; background: var(--bg); }
