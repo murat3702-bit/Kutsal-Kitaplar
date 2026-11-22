@@ -6,32 +6,36 @@ on:
     # Her gün gece 03:00'te (UTC) 24 saati geçmiş sürümleri kontrol edip siler
     - cron: '0 3 * * *'
 
+permissions:
+  contents: write
+
 jobs:
-  build:
-    # Sadece siz manuel çalıştırdığınızda (workflow_dispatch) APK derler; gece cron çalışmasında atlanır
-    if: github.event_name != 'schedule'
+  build-and-clean:
+    name: Build Signed APK and Clean Old Releases
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
 
     steps:
     - uses: actions/checkout@v4
+      if: github.event_name != 'schedule'
       with:
         persist-credentials: true
     
     - name: set up JDK 17
+      if: github.event_name != 'schedule'
       uses: actions/setup-java@v4
       with:
         java-version: '17'
         distribution: 'temurin'
-        cache: gradle
 
     - name: Setup Gradle
+      if: github.event_name != 'schedule'
       uses: gradle/actions/setup-gradle@v4
+      with:
+        cache-disabled: true
 
     - name: Kalıcı VersionName ve APP_VERSION Artır (1.99 -> 2.00)
       id: version
-      if: github.event_name != 'pull_request'
+      if: github.event_name != 'schedule' && github.event_name != 'pull_request'
       run: |
         FILE="app/build.gradle"
         JS_FILE="app/src/main/assets/app.js"
@@ -65,11 +69,13 @@ jobs:
         git push
 
     - name: Build Release APK
-      run: gradle assembleRelease --no-daemon
+      if: github.event_name != 'schedule'
+      run: gradle assembleRelease --no-daemon --no-build-cache
 
     - name: Sign Release APK
+      if: github.event_name != 'schedule'
       run: |
-        echo "${{ secrets.SIGNING_KEY }}" | base64 -d > release-key.jks
+        echo "${{ secrets.SIGNING_KEY }}" | base64 -di > release-key.jks
         BUILD_TOOLS=$(find $ANDROID_HOME/build-tools -maxdepth 1 -mindepth 1 | sort -V | tail -n 1)
         $BUILD_TOOLS/zipalign -v -p 4 app/build/outputs/apk/release/app-release-unsigned.apk app-release-aligned.apk
         $BUILD_TOOLS/apksigner sign \
@@ -81,20 +87,15 @@ jobs:
           app-release-aligned.apk
 
     - name: Release Signed APK
+      if: github.event_name != 'schedule'
       uses: softprops/action-gh-release@v2
       with:
         tag_name: v${{ steps.version.outputs.new_name }}
         name: Release v${{ steps.version.outputs.new_name }}
         files: app-v${{ steps.version.outputs.new_name }}-release-signed.apk
 
-  cleanup-releases:
-    name: 1 Günden Eski Release'leri Sil
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-
-    steps:
     - name: 24 Saatten Eski Sürümleri ve Tag'leri Temizle
+      if: always()
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
