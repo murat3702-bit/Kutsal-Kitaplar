@@ -1075,7 +1075,7 @@
     screen.appendChild(results);
     root.appendChild(screen);
     root.appendChild(tabbar("search"));
-    setTimeout(function () { input.focus(); }, 50);
+    // Not: Açılışta otomatik odaklanma yok; klavye kullanıcı kutuya dokununca açılır.
 
     function doSearch(q) {
       results.innerHTML = "";
