@@ -63,13 +63,16 @@
     exit: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>',
     cloudUp: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M19.35 10.04A7.49 7.49 0 0 0 12 4C9.11 4 6.6 5.64 5.35 8.04A5.994 5.994 0 0 0 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z"/></svg>',
     cloudDown: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M19.35 10.04A7.49 7.49 0 0 0 12 4C9.11 4 6.6 5.64 5.35 8.04A5.994 5.994 0 0 0 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM17 13l-5 5-5-5h3V9h4v4h3z"/></svg>',
-    close: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>'
+    close: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>',
+    user: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.6"/><path d="M5 20c.8-3.6 3.6-5.5 7-5.5s6.2 1.9 7 5.5"/></svg>',
+    bookOpen: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 6.5C10.3 5.2 8 4.7 4 4.8v13c4-.1 6.3.4 8 1.7 1.7-1.3 4-1.8 8-1.7v-13c-4-.1-6.3.4-8 1.7Z"/><path d="M12 6.5v13"/></svg>'
   };
 
   // ---------- Storage helpers ----------
   var LS_FAV = "dk_favorites", LS_HIST = "dk_history", LS_BOOKMARK = "dk_bookmarks", LS_NOTES = "dk_notes", LS_SEARCH_BOOK = "dk_search_book";
   var LS_TEXT_CATS = "dk_text_cats", LS_THEME = "dk_theme", LS_OVERRIDES = "dk_overrides";
   var LS_DIM = "dk_dim";
+  var LS_MEAL = "dk_kuran_meal", LS_KORDER = "dk_kuran_order";
   // Çift katmanlı kalıcı depolama: Android'de SharedPreferences (köprü) + WebView localStorage.
   // Her yazma ikisine birden yapılır; okurken önce SharedPreferences'a bakılır. Böylece uygulama
   // kapatılsa/öldürülse bile ayarlar kaybolmaz.
@@ -133,6 +136,71 @@
   Object.keys(TEXT_CAT_DEFAULTS).forEach(function (k) {
     if (!state.textCats[k] || typeof state.textCats[k] !== "object") state.textCats[k] = JSON.parse(JSON.stringify(TEXT_CAT_DEFAULTS[k]));
   });
+
+  // ---------- Kur'an mealleri + sûre sıralaması ----------
+  // Varsayılan meal (Edip Yüksel) projenin kendi metnidir (data/kuran.js). Diğer mealler
+  // data/meals/<anahtar>.js dosyalarındadır ve seçilince yüklenir (açılışta yalnızca seçili olan).
+  var MEAL_DEFAULT = "edip";
+  var MEALS = [ // [anahtar, tam ad, kısa ad]
+    ["diyanet", "Diyanet İşleri", "Diyanet"],
+    ["vakfi", "Diyanet Vakfı", "D. Vakfı"],
+    ["elmali", "E. Hamdi Yazır", "Yazır"],
+    ["ynuri", "Y. Nuri Öztürk", "Öztürk"],
+    ["ioglu", "Mustafa İslamoğlu", "İslamoğlu"],
+    ["okuyan", "Mehmet Okuyan", "Okuyan"],
+    ["aktas", "Erhan Aktaş", "Aktaş"],
+    ["bayrakli", "Bayraktar Bayraklı", "Bayraklı"],
+    ["edip", "Edip Yüksel", "Yüksel"],
+    ["hayrat", "Hayrat Neşriyat", "Hayrat"],
+    ["ibnkesir", "İbn-i Kesir", "İbn-i Kesir"],
+    ["kutub", "Seyyid Kutub", "Kutub"],
+    ["ates", "Süleyman Ateş", "Ateş"],
+    ["hyilmaz", "Hakkı Yılmaz", "Yılmaz"]
+  ];
+  // Nüzul (iniş) sırası: sûre numaralarının iniş sırasına göre dizilişi.
+  var NUZUL_ORDER = [96, 68, 73, 74, 1, 111, 81, 87, 92, 89, 93, 94, 103, 100, 108, 102, 107, 109, 105, 113, 114, 112, 53, 80, 97, 91, 85, 95, 106, 101, 75, 104, 77, 50, 90, 86, 54, 38, 7, 72, 36, 25, 35, 19, 20, 56, 26, 27, 28, 17, 10, 11, 12, 15, 6, 37, 31, 34, 39, 40, 41, 42, 43, 44, 45, 46, 51, 88, 18, 16, 71, 14, 21, 23, 32, 52, 67, 69, 70, 78, 79, 82, 84, 30, 29, 83, 2, 8, 3, 33, 60, 4, 99, 57, 47, 13, 55, 76, 65, 98, 59, 24, 22, 63, 58, 49, 66, 64, 61, 62, 48, 5, 9, 110];
+  var KURAN_BASE = window.KURAN_DATA || [];
+  var AYET_SAYISI = {};
+  KURAN_BASE.forEach(function (u) { AYET_SAYISI[u.id] = u.verses.length; });
+  var mealCache = {}, mealBusy = false;
+
+  function mealInfo(key) {
+    for (var i = 0; i < MEALS.length; i++) if (MEALS[i][0] === key) return MEALS[i];
+    return null;
+  }
+  // Seçili mealin sûre listesi (yüklü değilse null). Sûre adları tüm mealler için ortaktır.
+  function mealUnits(key) {
+    if (key === MEAL_DEFAULT) return KURAN_BASE;
+    if (mealCache[key]) return mealCache[key];
+    var src = window.KURAN_MEALS && window.KURAN_MEALS[key];
+    if (!src) return null;
+    mealCache[key] = KURAN_BASE.map(function (u, i) { return { id: u.id, name: u.name, verses: src[i] || [] }; });
+    return mealCache[key];
+  }
+  function applyMeal(key) {
+    var info = mealInfo(key), units = mealUnits(key);
+    if (!info || !units) return false;
+    state.meal = key;
+    BOOKS.kuran.data = units;
+    BOOKS.kuran.version = info[2]; // paylaşım / ayet sayfası başlığında görünen kısa ad
+    return true;
+  }
+  function loadMeal(key, done) {
+    if (mealUnits(key)) { done(true); return; }
+    var sc = document.createElement("script");
+    sc.src = "data/meals/" + key + ".js";
+    sc.onload = function () { done(!!mealUnits(key)); };
+    sc.onerror = function () { if (sc.parentNode) sc.parentNode.removeChild(sc); done(false); };
+    document.head.appendChild(sc);
+  }
+  state.meal = MEAL_DEFAULT;
+  state.kOrder = readRaw(LS_KORDER) === "nuzul" ? "nuzul" : "mushaf";
+  applyMeal(MEAL_DEFAULT);
+  (function () {
+    var saved = readRaw(LS_MEAL);
+    // Kayıtlı meal index.html tarafından önceden yüklenmiş olur; bulunamazsa varsayılana dön.
+    if (saved && saved !== MEAL_DEFAULT) applyMeal(saved);
+  })();
 
   var FONT_OPTIONS = {
     sistem: { label: "Sistem", css: "inherit" },
@@ -303,11 +371,29 @@
 
   // ---------- Data access helpers ----------
   function getUnits(bookKey) { return BOOKS[bookKey].data || []; }
+  // Liste ve Önceki/Sonraki için sıralı birimler (yalnızca Kur'anda nüzul sırası uygulanır).
+  function orderedUnits(bookKey) {
+    var units = getUnits(bookKey);
+    if (bookKey !== "kuran" || state.kOrder !== "nuzul") return units;
+    var byId = {};
+    units.forEach(function (u) { byId[u.id] = u; });
+    return NUZUL_ORDER.map(function (id) { return byId[id]; }).filter(Boolean);
+  }
+  function unitVerseCount(bookKey, u) {
+    // Birleşik ayet gruplayan mealler için gerçek ayet sayısı (Kur'anda meal-bağımsız).
+    if (bookKey === "kuran" && AYET_SAYISI[u.id]) return AYET_SAYISI[u.id];
+    return u.verses ? u.verses.length : 0;
+  }
   function getUnit(bookKey, unitId) {
     var units = getUnits(bookKey);
     return units.find(function (u) { return String(u.id) === String(unitId); });
   }
-  function overrideKey(bookKey, unitId, ch) { return bookKey + "|" + unitId + "|" + (ch || ""); }
+  // Kur'anda Edip dışındaki mealler kendi düzenleme anahtarını kullanır; böylece Edip'e yapılmış
+  // eski düzenlemeler başka bir mealin metnini gölgelemez.
+  function overrideKey(bookKey, unitId, ch) {
+    var b = bookKey === "kuran" && state.meal !== MEAL_DEFAULT ? "kuran@" + state.meal : bookKey;
+    return b + "|" + unitId + "|" + (ch || "");
+  }
   function getChapter(bookKey, unitId, ch) {
     var unit = getUnit(bookKey, unitId);
     if (!unit) return null;
@@ -341,7 +427,7 @@
   // bölüm-to-bölüm within a book and across book boundaries (Tevrat/İncil).
   function getAdjacent(bookKey, unitId, ch) {
     var book = BOOKS[bookKey];
-    var units = getUnits(bookKey);
+    var units = orderedUnits(bookKey);
     var uIdx = units.findIndex(function (u) { return String(u.id) === String(unitId); });
     if (uIdx === -1) return { prev: null, next: null };
 
@@ -371,6 +457,21 @@
       nextInfo = { url: readUrl(bookKey, nu.id, nfc.ch), label: nu.name + " " + nfc.ch };
     }
     return { prev: prevInfo, next: nextInfo };
+  }
+
+  // Ayet numarası "5" ya da birleşik "2-4" olabilir; hedef ayetin bir aralığın içinde olup olmadığına bakar.
+  function nRange(n) {
+    var p = String(n).split(/\s*[-\u2013\u2014]\s*/).map(function (x) { return parseInt(x, 10); }).filter(function (x) { return !isNaN(x); });
+    return p.length ? [p[0], p[p.length - 1]] : null;
+  }
+  function findTargetIndex(verses, target) {
+    if (target === undefined || target === null || target === "") return -1;
+    var exact = -1, cover = -1, t = nRange(target);
+    verses.forEach(function (v, i) {
+      if (exact < 0 && String(v.n) === String(target)) exact = i;
+      if (cover < 0 && t) { var r = nRange(v.n); if (r && r[0] <= t[0] && t[0] <= r[1]) cover = i; }
+    });
+    return exact >= 0 ? exact : cover;
   }
 
   // ---------- Verse number badge (merged numbers stack vertically) ----------
@@ -640,6 +741,7 @@
   function route() {
     var current = location.hash || "#/";
     replaceNext = false;
+    closeMenus();
 
     var raw = current.replace(/^#\/?/, "");
     var parts = raw === "" ? [] : raw.split("/");
@@ -697,6 +799,7 @@
   window.dkBack = function () {
     if (overlayNode) { closeOverlay(); return true; }
     if (sheetNodes) { closeVerseSheet(); return true; }
+    if (closeMenus()) return true;
     var parent = parentOf(location.hash || "#/");
     if (parent === null) return false;
     go(parent);
@@ -893,25 +996,136 @@
     return name + " " + entry.ch + (entry.n ? ":" + entry.n : "");
   }
 
+  // ---------- Kur'an üst çubuk menüleri (sıralama + meal) ----------
+  // Açılır menüler ikonun altında yüzer (position:absolute); üst çubuğu büyütmez, listeyi itmez.
+  var openMenu = null; // { wrap, pop, btn }
+  var swallowClickUntil = 0;
+  function closeMenus() {
+    if (!openMenu) return false;
+    var m = openMenu; openMenu = null;
+    try { m.btn.setAttribute("aria-expanded", "false"); if (m.pop.parentNode) m.pop.parentNode.removeChild(m.pop); } catch (e) {}
+    return true;
+  }
+  // Dışarı dokunma: menüyü kapat ve o dokunuşun listedeki bir satırı açmasını engelle.
+  document.addEventListener("pointerdown", function (e) {
+    if (openMenu && !(e.target.closest && e.target.closest(".tb-menu"))) { closeMenus(); swallowClickUntil = Date.now() + 450; }
+  }, true);
+  document.addEventListener("click", function (e) {
+    if (Date.now() < swallowClickUntil && !(e.target.closest && e.target.closest(".tb-menu"))) {
+      swallowClickUntil = 0; e.stopPropagation(); e.preventDefault();
+    }
+  }, true);
+  // Liste kaydırılınca menü kapanır.
+  window.addEventListener("scroll", function () { if (openMenu) closeMenus(); }, { passive: true });
+
+  function menuItem(label, sub, active, onPick) {
+    var b = el("button", "pop-item" + (active ? " active" : ""));
+    b.setAttribute("role", "menuitemradio");
+    b.setAttribute("aria-checked", active ? "true" : "false");
+    b.innerHTML = '<span class="pop-label"><span>' + escapeHtml(label) + "</span>" + (sub ? "<small>" + escapeHtml(sub) + "</small>" : "") + "</span>" +
+      '<span class="pop-check">' + (active ? ICON.check : "") + "</span>";
+    b.addEventListener("click", onPick);
+    return b;
+  }
+
+  function kuranMenus(onChange) {
+    var frag = document.createDocumentFragment();
+
+    function makeMenu(iconHtml, label, buildItems, title, extraCls) {
+      var wrap = el("div", "tb-menu");
+      var btn = el("button", "icon-btn", iconHtml);
+      btn.setAttribute("aria-label", label);
+      btn.setAttribute("aria-haspopup", "menu");
+      btn.setAttribute("aria-expanded", "false");
+      btn.addEventListener("click", function () {
+        var wasOpen = openMenu && openMenu.btn === btn;
+        closeMenus();
+        if (wasOpen) return;
+        var pop = el("div", "pop-menu" + (extraCls ? " " + extraCls : ""));
+        pop.setAttribute("role", "menu");
+        pop.appendChild(el("div", "pop-title", title));
+        var list = el("div", "pop-list");
+        buildItems(list);
+        pop.appendChild(list);
+        wrap.appendChild(pop);
+        btn.setAttribute("aria-expanded", "true");
+        openMenu = { wrap: wrap, pop: pop, btn: btn };
+        // Seçili öğe görünür alanın dışındaysa kaydır (görünüyorsa liste en baştan başlar).
+        var act = list.querySelector(".active");
+        if (act) {
+          var top = act.offsetTop - list.offsetTop;
+          if (top + act.offsetHeight > list.clientHeight) list.scrollTop = Math.max(0, top - 8);
+        }
+      });
+      wrap.appendChild(btn);
+      return wrap;
+    }
+
+    // Sıralama (okuma/kitap ikonu) — kişi ikonunun soluna
+    frag.appendChild(makeMenu(ICON.bookOpen, "Sûre sıralaması", function (list) {
+      [["mushaf", "Mushaf sırası", "Kur'an'daki sıra"], ["nuzul", "Nüzul sırası", "İniş sırası"]].forEach(function (o) {
+        list.appendChild(menuItem(o[1], o[2], state.kOrder === o[0], function () {
+          var changed = state.kOrder !== o[0];
+          state.kOrder = o[0]; writeRaw(LS_KORDER, o[0]);
+          closeMenus();
+          if (changed) { onChange(true); showToast(o[1]); }
+        }));
+      });
+    }, "Sıralama"));
+
+    // Meal seçimi (kişi/yazar ikonu) — en sağda
+    frag.appendChild(makeMenu(ICON.user, "Meal seç", function (list) {
+      MEALS.slice().sort(function (a, b) { return a[1].localeCompare(b[1], "tr"); }).forEach(function (m) {
+        list.appendChild(menuItem(m[1], "", state.meal === m[0], function () {
+          if (m[0] === state.meal) { closeMenus(); return; }
+          if (mealBusy) return;
+          mealBusy = true;
+          loadMeal(m[0], function (ok) {
+            mealBusy = false;
+            if (!ok || !applyMeal(m[0])) { showToast("Meal yüklenemedi"); return; }
+            writeRaw(LS_MEAL, m[0]);
+            closeMenus();
+            onChange(false);
+            showToast(m[1] + " meali");
+          });
+        }));
+      });
+    }, "Meal", "pop-meals"));
+    return frag;
+  }
+
   // ---------- List screen (units of a book) ----------
   function renderList(bookKey) {
     var book = BOOKS[bookKey];
     root.innerHTML = "";
-    root.appendChild(topbar(bookTitle(bookKey), { back: true, backUrl: "#/" }));
+    var bar = topbar(bookTitle(bookKey), { back: true, backUrl: "#/" });
+    root.appendChild(bar);
     var screen = el("div", "screen");
-    var units = getUnits(bookKey);
-    units.forEach(function (u) {
-      var row = el("div", "list-row");
-      var sub = book.kind === "nested" ? u.chapters.length + " bölüm" : (u.verses ? u.verses.length + " ayet" : "");
-      row.innerHTML =
-        '<div><div class="name txt-liste">' + u.id + ". " + u.name + '</div><div class="sub">' + sub + "</div></div>" +
-        '<div class="chevron">' + ICON.chevron + "</div>";
-      row.addEventListener("click", function () {
-        if (book.kind === "flat") go(readUrl(bookKey, u.id));
-        else go("#/chapters/" + bookKey + "/" + u.id);
+    function paint() {
+      screen.innerHTML = "";
+      var nuzul = bookKey === "kuran" && state.kOrder === "nuzul";
+      orderedUnits(bookKey).forEach(function (u, i) {
+        var row = el("div", "list-row");
+        var cnt = unitVerseCount(bookKey, u);
+        var sub = book.kind === "nested" ? u.chapters.length + " bölüm" : (u.verses ? cnt + " ayet" : "");
+        if (nuzul) sub = u.id + ". sûre \u00B7 " + sub;
+        row.innerHTML =
+          '<div><div class="name txt-liste">' + (nuzul ? i + 1 : u.id) + ". " + u.name + '</div><div class="sub">' + sub + "</div></div>" +
+          '<div class="chevron">' + ICON.chevron + "</div>";
+        row.addEventListener("click", function () {
+          if (book.kind === "flat") go(readUrl(bookKey, u.id));
+          else go("#/chapters/" + bookKey + "/" + u.id);
+        });
+        screen.appendChild(row);
       });
-      screen.appendChild(row);
-    });
+    }
+    if (bookKey === "kuran") {
+      bar.appendChild(kuranMenus(function (orderChanged) {
+        paint();
+        if (orderChanged) resetScroll(); // yeni sıralamada listenin başına dön; meal değişince konum korunur
+      }));
+    }
+    paint();
     root.appendChild(screen);
   }
 
@@ -961,6 +1175,7 @@
 
     var block = el("div", "verse-block");
     block.setAttribute("lang", "tr");
+    var targetVi = findTargetIndex(chapter.verses, scrollToVerse);
     chapter.verses.forEach(function (v, vi) {
       if (v.h) {
         var hEl = el("div", "verse-heading");
@@ -980,7 +1195,7 @@
       vEl.addEventListener("click", function () {
         openVerseSheet({ book: bookKey, unit: unitId, ch: ch || null, n: v.n, t: v.t, title: title, fn: !!chapter.fn, el: vEl });
       });
-      if (String(v.n) === String(scrollToVerse)) vEl.id = "target-verse";
+      if (vi === targetVi) vEl.id = "target-verse";
       block.appendChild(vEl);
     });
     root.appendChild(block);
@@ -1190,9 +1405,9 @@
 
   // ---------- Sürüm / Yedekleme / Hakkında ----------
   // Her değişiklikte hem bu değer hem app/build.gradle (versionName) +1 güncellenir.
-  var APP_VERSION = "2.35";
+  var APP_VERSION = "2.34";
   var BACKUP_FOLDER_LABEL = "Backups / 4 Kitap";
-  var BACKUP_KEYS = [LS_FAV, LS_HIST, LS_BOOKMARK, LS_NOTES, LS_SEARCH_BOOK, LS_TEXT_CATS, LS_THEME, LS_OVERRIDES, LS_DIM];
+  var BACKUP_KEYS = [LS_FAV, LS_HIST, LS_BOOKMARK, LS_NOTES, LS_SEARCH_BOOK, LS_TEXT_CATS, LS_THEME, LS_OVERRIDES, LS_DIM, LS_MEAL, LS_KORDER];
   var overlayNode = null; // açık popup / alt sayfa
 
   function closeOverlay(immediate) {
@@ -1499,7 +1714,7 @@
 
     if (!unitId) {
       root.innerHTML = "";
-      root.appendChild(topbar(bookTitle(bookKey), { back: true, backUrl: "#/admin" }));
+      root.appendChild(topbar(bookTitle(bookKey) + (bookKey === "kuran" && BOOKS.kuran.version ? " \u00B7 " + BOOKS.kuran.version : ""), { back: true, backUrl: "#/admin" }));
       var screen1 = el("div", "screen");
       getUnits(bookKey).forEach(function (u) {
         var row = el("div", "list-row");

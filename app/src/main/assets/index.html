@@ -31,6 +31,16 @@
 <script src="data/tevrat.js" onerror="dkFail('Yüklenemedi: data/tevrat.js')"></script>
 <script src="data/zebur.js" onerror="dkFail('Yüklenemedi: data/zebur.js')"></script>
 <script>
+  // Kayıtlı Kur'an mealini (Edip Yüksel dışındaysa) uygulama başlamadan önce yükle; böylece açılışta
+  // önce başka bir meal görünüp sonra değişmez. Anahtar bulunamazsa uygulama varsayılana döner.
+  (function () {
+    var m = null;
+    try { if (window.Android && typeof window.Android.getItem === "function") m = window.Android.getItem("dk_kuran_meal"); } catch (e) {}
+    if (m === null || m === undefined) { try { m = localStorage.getItem("dk_kuran_meal"); } catch (e) {} }
+    if (m && m !== "edip" && /^[a-z]+$/.test(m)) document.write('<script src="data/meals/' + m + '.js"><\/script>');
+  })();
+</script>
+<script>
   ["KURAN_DATA", "INCIL_DATA", "TEVRAT_DATA", "ZEBUR_DATA"].forEach(function (k) {
     if (!window[k]) window.dkFail("Veri okunamadı: " + k);
   });

@@ -650,3 +650,32 @@ body.home-lock .verse-day-card .quote { margin: auto 0; }
   min-width: 110px; padding: 13px 22px; font-size: 1.0625rem; font-weight: 700; font-family: inherit; cursor: pointer;
 }
 .popup-btn.primary { background: var(--accent-soft); border-color: transparent; color: var(--accent-text); }
+
+/* Kur'an üst çubuğu: sıralama + meal açılır menüleri (ikonun altında yüzer, üst çubuğu büyütmez) */
+.tb-menu { position: relative; flex: 0 0 auto; }
+.tb-menu .icon-btn[aria-expanded="true"] { background: var(--accent-soft); color: var(--accent-text); }
+.pop-menu {
+  position: absolute; top: calc(100% + 8px); right: 0; z-index: 30;
+  min-width: 200px; max-width: calc(100vw - 24px);
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+  box-shadow: 0 10px 28px rgba(0,0,0,.20); padding: 6px;
+  transform-origin: top right; animation: pop-in .14s ease-out;
+}
+.pop-menu.pop-meals { min-width: 232px; }
+@keyframes pop-in { from { opacity: 0; transform: scale(.96) translateY(-4px); } to { opacity: 1; transform: none; } }
+.pop-title {
+  padding: 6px 10px 4px; font-size: 0.6875rem; font-weight: 700; letter-spacing: .06em;
+  text-transform: uppercase; color: var(--text-muted);
+}
+.pop-list { max-height: min(56vh, 380px); overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
+.pop-item {
+  width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 10px 10px; border: none; border-radius: 10px; background: transparent;
+  color: var(--text-primary); font-size: 0.9375rem; text-align: left; cursor: pointer;
+}
+.pop-item:active { background: var(--surface-2); }
+.pop-item .pop-label { display: flex; flex-direction: column; min-width: 0; }
+.pop-item .pop-label small { font-size: 0.75rem; color: var(--text-muted); margin-top: 1px; }
+.pop-item .pop-check { width: 18px; height: 18px; flex: 0 0 18px; color: var(--accent); }
+.pop-item .pop-check svg { width: 18px; height: 18px; display: block; }
+.pop-item.active { background: var(--accent-soft); color: var(--accent-text); font-weight: 600; }
