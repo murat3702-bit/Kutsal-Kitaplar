@@ -99,7 +99,7 @@ jobs:
           --ks-key-alias "${{ secrets.ALIAS }}" \
           --ks-pass "pass:${{ secrets.KEY_STORE_PASSWORD }}" \
           --key-pass "pass:${{ secrets.KEY_PASSWORD }}" \
-          --out app-v${{ steps.version.outputs.new_name }}-release-signed.apk \
+          --out "Kutsal-Kitaplar-v${{ steps.version.outputs.new_name }}.apk" \
           app-release-aligned.apk
 
     - name: Yeni Sürümü Depoya Kaydet (Commit & Push)
@@ -122,8 +122,8 @@ jobs:
       with:
         tag_name: v${{ steps.version.outputs.new_name }}
         target_commitish: ${{ steps.git_push.outputs.new_sha }}
-        name: Release v${{ steps.version.outputs.new_name }}
-        files: app-v${{ steps.version.outputs.new_name }}-release-signed.apk
+        name: Kutsal Kitaplar v${{ steps.version.outputs.new_name }}
+        files: Kutsal-Kitaplar-v${{ steps.version.outputs.new_name }}.apk
         make_latest: true
 
     - name: 24 Saatten Eski Sürümleri, Tag'leri ve Önbellekleri Temizle
