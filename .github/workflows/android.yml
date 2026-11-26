@@ -82,7 +82,7 @@ jobs:
         fi
         
         echo "Yeni Versiyon -> versionCode: ${NEW_CODE:-Yok} | versionName & app.js: $NEW_NAME"
-        echo "new_name=$NEW_NAME" >> $GITHUB_OUTPUT
+        echo "new_name=$NEW_NAME" >> "$GITHUB_OUTPUT"
 
     - name: Build Release APK
       if: github.event_name != 'schedule'
@@ -93,7 +93,11 @@ jobs:
       run: |
         echo "${{ secrets.SIGNING_KEY }}" | base64 -di > release-key.jks
         BUILD_TOOLS=$(find $ANDROID_HOME/build-tools -maxdepth 1 -mindepth 1 | sort -V | tail -n 1)
-        $BUILD_TOOLS/zipalign -v -p 4 app/build/outputs/apk/release/app-release-unsigned.apk app-release-aligned.apk
+        SRC_APK=$(find app/build/outputs/apk/release -maxdepth 1 -name '*.apk' | head -n 1)
+        if [ -z "$SRC_APK" ]; then
+          echo "HATA: APK bulunamadı"; ls -R app/build/outputs/apk || true; exit 1
+        fi
+        $BUILD_TOOLS/zipalign -v -p 4 "$SRC_APK" app-release-aligned.apk
         $BUILD_TOOLS/apksigner sign \
           --ks release-key.jks \
           --ks-key-alias "${{ secrets.ALIAS }}" \
@@ -113,8 +117,9 @@ jobs:
           git add app/src/main/assets/app.js
         fi
         git commit -m "Versiyon artırıldı: ${{ steps.version.outputs.new_name }} [skip ci]" || echo "Commit edilecek değişiklik yok"
+        git pull --rebase origin "${{ github.ref_name }}" || true
         git push
-        echo "new_sha=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
+        echo "new_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
     - name: Release Signed APK
       if: github.event_name != 'schedule' && github.event_name != 'pull_request'
