@@ -12,6 +12,10 @@ permissions:
   contents: write
   actions: write
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   build-and-clean:
     name: Build Signed APK and Clean Old Releases
@@ -23,7 +27,7 @@ jobs:
       with:
         persist-credentials: true
     
-    - name: set up JDK 17
+    - name: Set up JDK 17
       if: github.event_name != 'schedule'
       uses: actions/setup-java@v5
       with:
@@ -36,14 +40,21 @@ jobs:
       with:
         cache-disabled: true
 
-    - name: Kalıcı VersionName ve APP_VERSION Artır (1.99 -> 2.00)
+    - name: VersionCode, VersionName ve APP_VERSION Güncelle (1.99 -> 2.00)
       id: version
       if: github.event_name != 'schedule' && github.event_name != 'pull_request'
       run: |
         FILE="app/build.gradle"
         JS_FILE="app/src/main/assets/app.js"
         
-        # 1. Mevcut versionName değerini okur
+        # 1. versionCode değerini +1 artırır
+        CURRENT_CODE=$(grep -oE 'versionCode[ =]+[0-9]+' "$FILE" | grep -oE '[0-9]+' | head -n 1)
+        if [ -n "$CURRENT_CODE" ]; then
+          NEW_CODE=$((CURRENT_CODE + 1))
+          sed -i -E "s/(versionCode[ =]+)[0-9]+/\1$NEW_CODE/" "$FILE"
+        fi
+
+        # 2. Mevcut versionName değerini okur
         CURRENT_NAME=$(grep -oE 'versionName[ =("]+"[^"]+"' "$FILE" | grep -oE '[0-9]+\.[0-9]+' | head -n 1)
         
         if [ -z "$CURRENT_NAME" ]; then
@@ -55,7 +66,7 @@ jobs:
         MAJOR=$(echo "$CURRENT_NAME" | cut -d'.' -f1)
         MINOR=$(echo "$CURRENT_NAME" | cut -d'.' -f2)
         
-        # 2. Alt sürümü +1 artırır ve 99'u geçerse ana sürümü yükseltir (1.99 -> 2.00)
+        # 3. Alt sürümü +1 artırır ve 99'u geçerse ana sürümü yükseltir (1.99 -> 2.00)
         MINOR=$((10#$MINOR + 1))
         if [ "$MINOR" -gt 99 ]; then
           MAJOR=$((MAJOR + 1))
@@ -64,28 +75,21 @@ jobs:
         
         NEW_NAME=$(printf "%d.%02d" "$MAJOR" "$MINOR")
         
-        # 3. Hem app/build.gradle hem de app.js içindeki sürümü günceller
+        # 4. Hem app/build.gradle hem de varsa app.js içindeki sürümü günceller
         sed -i -E "s/(versionName[ =(\"]+)[0-9]+\.[0-9]+/\1$NEW_NAME/" "$FILE"
         if [ -f "$JS_FILE" ]; then
           sed -i -E "s/(var APP_VERSION = \")[^\"]+\"/\1$NEW_NAME\"/" "$JS_FILE"
         fi
         
-        echo "Yeni Versiyon -> build.gradle ve app.js: $NEW_NAME"
+        echo "Yeni Versiyon -> versionCode: ${NEW_CODE:-Yok} | versionName & app.js: $NEW_NAME"
         echo "new_name=$NEW_NAME" >> $GITHUB_OUTPUT
-
-        # 4. İki dosyayı da depoya kalıcı olarak kaydeder
-        git config --local user.email "action@github.com"
-        git config --local user.name "GitHub Action"
-        git add "$FILE" "$JS_FILE"
-        git commit -m "Versiyon artırıldı: $NEW_NAME [skip ci]"
-        git push
 
     - name: Build Release APK
       if: github.event_name != 'schedule'
       run: gradle assembleRelease --no-daemon --no-build-cache
 
     - name: Sign Release APK
-      if: github.event_name != 'schedule'
+      if: github.event_name != 'schedule' && github.event_name != 'pull_request'
       run: |
         echo "${{ secrets.SIGNING_KEY }}" | base64 -di > release-key.jks
         BUILD_TOOLS=$(find $ANDROID_HOME/build-tools -maxdepth 1 -mindepth 1 | sort -V | tail -n 1)
@@ -98,25 +102,39 @@ jobs:
           --out app-v${{ steps.version.outputs.new_name }}-release-signed.apk \
           app-release-aligned.apk
 
+    - name: Yeni Sürümü Depoya Kaydet (Commit & Push)
+      id: git_push
+      if: github.event_name != 'schedule' && github.event_name != 'pull_request'
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git add app/build.gradle
+        if [ -f "app/src/main/assets/app.js" ]; then
+          git add app/src/main/assets/app.js
+        fi
+        git commit -m "Versiyon artırıldı: ${{ steps.version.outputs.new_name }} [skip ci]" || echo "Commit edilecek değişiklik yok"
+        git push
+        echo "new_sha=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
+
     - name: Release Signed APK
-      if: github.event_name != 'schedule'
+      if: github.event_name != 'schedule' && github.event_name != 'pull_request'
       uses: softprops/action-gh-release@v2
       with:
         tag_name: v${{ steps.version.outputs.new_name }}
-        target_commitish: ${{ github.ref_name }}
+        target_commitish: ${{ steps.git_push.outputs.new_sha }}
         name: Release v${{ steps.version.outputs.new_name }}
         files: app-v${{ steps.version.outputs.new_name }}-release-signed.apk
         make_latest: true
 
     - name: 24 Saatten Eski Sürümleri, Tag'leri ve Önbellekleri Temizle
-      if: always()
+      if: always() && github.event_name != 'pull_request'
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        CURRENT_TAG: v${{ steps.version.outputs.new_name }}
       run: |
         CUTOFF=$(date -u -d '1 day ago' +%Y-%m-%dT%H:%M:%SZ)
+        LATEST_TAG=$(gh release view --repo "${{ github.repository }}" --json tagName --jq '.tagName' 2>/dev/null || echo "")
         echo "Kesim tarihi (UTC): $CUTOFF"
-        echo "Korunan güncel sürüm: $CURRENT_TAG"
+        echo "Korunan en güncel sürüm: $LATEST_TAG"
 
         gh cache list --repo "${{ github.repository }}" --limit 100 --json id --jq '.[].id' | while read -r CACHE_ID; do
           if [ -n "$CACHE_ID" ]; then
@@ -127,7 +145,7 @@ jobs:
 
         gh release list --repo "${{ github.repository }}" --limit 100 --json tagName,createdAt \
           --jq ".[] | select(.createdAt < \"$CUTOFF\") | .tagName" | while read -r TAG; do
-            if [ -n "$TAG" ] && [ "$TAG" != "$CURRENT_TAG" ]; then
+            if [ -n "$TAG" ] && [ "$TAG" != "$LATEST_TAG" ]; then
               echo "Siliniyor: $TAG"
               gh release delete "$TAG" --repo "${{ github.repository }}" --yes --cleanup-tag
             fi
